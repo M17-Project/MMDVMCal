@@ -63,7 +63,8 @@ enum MMDVM_STATE {
   STATE_FMCAL15K  = 104,
   STATE_FMCAL20K  = 105,
   STATE_FMCAL25K  = 106,
-  STATE_FMCAL30K  = 107
+  STATE_FMCAL30K  = 107,
+  STATE_M17CAL    = 108
 };
 
 class CMMDVMCal {
@@ -134,6 +135,7 @@ private:
 	bool setP25Cal1K();
 	bool setNXDNCal1K();
 	bool setPOCSAGCal();
+	bool setM17Cal();
 	bool setDSTARBER_FEC();
 	bool setDMRBER_FEC();
 	bool setDMRBER_1K();
