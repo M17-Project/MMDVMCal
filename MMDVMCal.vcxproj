@@ -147,6 +147,8 @@
     <ClInclude Include="CRC.h" />
     <ClInclude Include="Golay24128.h" />
     <ClInclude Include="Hamming.h" />
+    <ClInclude Include="M17Convolution.h" />
+    <ClInclude Include="M17Defines.h" />
     <ClInclude Include="MMDVMCal.h" />
     <ClInclude Include="NXDNDefines.h" />
     <ClInclude Include="NXDNLICH.h" />
@@ -165,6 +167,7 @@
     <ClCompile Include="CRC.cpp" />
     <ClCompile Include="Golay24128.cpp" />
     <ClCompile Include="Hamming.cpp" />
+    <ClCompile Include="M17Convolution.cpp" />
     <ClCompile Include="MMDVMCal.cpp" />
     <ClCompile Include="NXDNLICH.cpp" />
     <ClCompile Include="P25Utils.cpp" />

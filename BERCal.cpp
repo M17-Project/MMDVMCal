@@ -22,6 +22,8 @@
 #include "BERCal.h"
 #include "Hamming.h"
 #include "Golay24128.h"
+#include "M17Convolution.h"
+#include "M17Defines.h"
 #include "P25Utils.h"
 #include "NXDNDefines.h"
 #include "NXDNLICH.h"
@@ -39,6 +41,31 @@
 #include <unistd.h>
 #define	EOL	"\r\n"
 #endif
+
+const unsigned int M17_INTERLEAVER[] = {
+	0U, 137U, 90U, 227U, 180U, 317U, 270U, 39U, 360U, 129U, 82U, 219U, 172U, 309U, 262U, 31U, 352U, 121U, 74U, 211U, 164U,
+	301U, 254U, 23U, 344U, 113U, 66U, 203U, 156U, 293U, 246U, 15U, 336U, 105U, 58U, 195U, 148U, 285U, 238U, 7U, 328U, 97U,
+	50U, 187U, 140U, 277U, 230U, 367U, 320U, 89U, 42U, 179U, 132U, 269U, 222U, 359U, 312U, 81U, 34U, 171U, 124U, 261U, 214U,
+	351U, 304U, 73U, 26U, 163U, 116U, 253U, 206U, 343U, 296U, 65U, 18U, 155U, 108U, 245U, 198U, 335U, 288U, 57U, 10U, 147U,
+	100U, 237U, 190U, 327U, 280U, 49U, 2U, 139U, 92U, 229U, 182U, 319U, 272U, 41U, 362U, 131U, 84U, 221U, 174U, 311U, 264U,
+	33U, 354U, 123U, 76U, 213U, 166U, 303U, 256U, 25U, 346U, 115U, 68U, 205U, 158U, 295U, 248U, 17U, 338U, 107U, 60U, 197U,
+	150U, 287U, 240U, 9U, 330U, 99U, 52U, 189U, 142U, 279U, 232U, 1U, 322U, 91U, 44U, 181U, 134U, 271U, 224U, 361U, 314U, 83U,
+	36U, 173U, 126U, 263U, 216U, 353U, 306U, 75U, 28U, 165U, 118U, 255U, 208U, 345U, 298U, 67U, 20U, 157U, 110U, 247U, 200U,
+	337U, 290U, 59U, 12U, 149U, 102U, 239U, 192U, 329U, 282U, 51U, 4U, 141U, 94U, 231U, 184U, 321U, 274U, 43U, 364U, 133U, 86U,
+	223U, 176U, 313U, 266U, 35U, 356U, 125U, 78U, 215U, 168U, 305U, 258U, 27U, 348U, 117U, 70U, 207U, 160U, 297U, 250U, 19U,
+	340U, 109U, 62U, 199U, 152U, 289U, 242U, 11U, 332U, 101U, 54U, 191U, 144U, 281U, 234U, 3U, 324U, 93U, 46U, 183U, 136U, 273U,
+	226U, 363U, 316U, 85U, 38U, 175U, 128U, 265U, 218U, 355U, 308U, 77U, 30U, 167U, 120U, 257U, 210U, 347U, 300U, 69U, 22U,
+	159U, 112U, 249U, 202U, 339U, 292U, 61U, 14U, 151U, 104U, 241U, 194U, 331U, 284U, 53U, 6U, 143U, 96U, 233U, 186U, 323U,
+	276U, 45U, 366U, 135U, 88U, 225U, 178U, 315U, 268U, 37U, 358U, 127U, 80U, 217U, 170U, 307U, 260U, 29U, 350U, 119U, 72U,
+	209U, 162U, 299U, 252U, 21U, 342U, 111U, 64U, 201U, 154U, 291U, 244U, 13U, 334U, 103U, 56U, 193U, 146U, 283U, 236U, 5U,
+	326U, 95U, 48U, 185U, 138U, 275U, 228U, 365U, 318U, 87U, 40U, 177U, 130U, 267U, 220U, 357U, 310U, 79U, 32U, 169U, 122U,
+	259U, 212U, 349U, 302U, 71U, 24U, 161U, 114U, 251U, 204U, 341U, 294U, 63U, 16U, 153U, 106U, 243U, 196U, 333U, 286U, 55U,
+	8U, 145U, 98U, 235U, 188U, 325U, 278U, 47U};
+
+const unsigned char M17_SCRAMBLER[] = {
+	0x00U, 0x00U, 0xD6U, 0xB5U, 0xE2U, 0x30U, 0x82U, 0xFFU, 0x84U, 0x62U, 0xBAU, 0x4EU, 0x96U, 0x90U, 0xD8U, 0x98U, 0xDDU,
+	0x5DU, 0x0CU, 0xC8U, 0x52U, 0x43U, 0x91U, 0x1DU, 0xF8U, 0x6EU, 0x68U, 0x2FU, 0x35U, 0xDAU, 0x14U, 0xEAU, 0xCDU, 0x76U,
+	0x19U, 0x8DU, 0xD5U, 0x80U, 0xD1U, 0x33U, 0x87U, 0x13U, 0x57U, 0x18U, 0x2DU, 0x29U, 0x78U, 0xC3U};
 
 const unsigned char BIT_MASK_TABLE[] = {0x80U, 0x40U, 0x20U, 0x10U, 0x08U, 0x04U, 0x02U, 0x01U};
 
@@ -531,6 +558,9 @@ CBERCal::CBERCal():
 m_errors(0U),
 m_bits(0U),
 m_frames(0U),
+m_m17Pending(false),
+m_m17PendingFN(0U),
+m_m17PendingErrs(0U),
 m_timeout(300U),
 m_timer(0U)
 {
@@ -1192,6 +1222,175 @@ unsigned int CBERCal::regenerateYSFDN(unsigned char* bytes)
 	}
 
 	return regenerateDMR(a, b, c);
+}
+
+void CBERCal::M17FEC(const unsigned char* buffer, const unsigned char m_tag)
+{
+	if (m_tag == M17_TAG_EOT) {
+		M17End("end");
+		return;
+	} else if (m_tag == M17_TAG_LOST) {
+		M17End("lost");
+		return;
+	} else if (m_tag != M17_TAG_LINK_SETUP && m_tag != M17_TAG_STREAM && m_tag != M17_TAG_PACKET) {
+		return;
+	}
+
+	// Remove the scrambling and the interleaving, leaving the sync as it is
+	unsigned char frame[M17_FRAME_LENGTH_BYTES];
+	M17Deinterleave(buffer, frame);
+
+	CM17Convolution conv;
+
+	if (m_tag == M17_TAG_LINK_SETUP) {
+		unsigned char lsf[M17_LSF_LENGTH_BYTES];
+		unsigned int errs = conv.decodeLinkSetup(frame + M17_SYNC_LENGTH_BYTES, lsf);
+
+		// The modem finds link setup syncs in noise, so only a valid one starts a transmission
+		if (!M17CheckCRC(lsf, M17_LSF_LENGTH_BYTES))
+			return;
+
+		char src[10U], dst[10U];
+		M17Callsign(lsf + 6U, src);
+		M17Callsign(lsf + 0U, dst);
+		::fprintf(stdout, "M17 link setup received from %s to %s, Viterbi BER %% (errs): %.3f%% (%u/%u)" EOL, src, dst, float(errs * 100U) / float(M17_LSF_FEC_BITS), errs, M17_LSF_FEC_BITS);
+
+		// The link setup frame counts towards the total, as in MMDVM-Host
+		timerStart();
+		m_errors = errs;
+		m_bits   = M17_LSF_FEC_BITS;
+		m_frames = 0U;
+		m_m17Pending = false;
+	} else if (m_tag == M17_TAG_STREAM) {
+		// The LICH has its own Golay FEC, the BER is for the FN and payload, as in MMDVM-Host
+		unsigned char data[M17_STREAM_DATA_LENGTH_BYTES];
+		unsigned int errs = conv.decodeData(frame + M17_SYNC_LENGTH_BYTES + M17_LICH_FRAGMENT_FEC_LENGTH_BYTES, data);
+
+		unsigned int fn = (data[0U] << 8) | data[1U];
+
+		// Without a link setup frame (late entry), noise can look like a stream frame too. Start
+		// a transmission only when two frames in a row have consecutive frame numbers.
+		if (m_bits == 0U) {
+			bool next = m_m17Pending && ((fn & 0x7FFFU) == ((m_m17PendingFN + 1U) & 0x7FFFU));
+			if (!next) {
+				m_m17Pending     = true;
+				m_m17PendingFN   = fn & 0x7FFFU;
+				m_m17PendingErrs = errs;
+				return;
+			}
+
+			::fprintf(stdout, "M17 stream late entry" EOL);
+			::fprintf(stdout, "M17 stream FN: %u, Viterbi BER %% (errs): %.3f%% (%u/%u)" EOL, m_m17PendingFN, float(m_m17PendingErrs * 100U) / float(M17_STREAM_FEC_BITS), m_m17PendingErrs, M17_STREAM_FEC_BITS);
+			m_errors = m_m17PendingErrs;
+			m_bits   = M17_STREAM_FEC_BITS;
+			m_frames = 1U;
+			m_m17Pending = false;
+		}
+
+		timerStart();
+		m_errors += errs;
+		m_bits   += M17_STREAM_FEC_BITS;
+		m_frames++;
+
+		::fprintf(stdout, "M17 stream FN: %u, Viterbi BER %% (errs): %.3f%% (%u/%u)" EOL, fn & 0x7FFFU, float(errs * 100U) / float(M17_STREAM_FEC_BITS), errs, M17_STREAM_FEC_BITS);
+
+		if ((fn & 0x8000U) == 0x8000U)
+			M17End("end");
+	} else {
+		// A packet can't be used without its link setup frame, and noise produces packet frames
+		if (m_bits == 0U)
+			return;
+
+		unsigned char data[M17_PACKET_DATA_LENGTH_BYTES];
+		unsigned int errs = conv.decodePacket(frame + M17_SYNC_LENGTH_BYTES, data);
+
+		bool eof = (data[25U] & 0x80U) == 0x80U;
+		unsigned int counter = (data[25U] >> 2) & 0x1FU;
+
+		timerStart();
+		m_errors += errs;
+		m_bits   += M17_PACKET_FEC_BITS;
+		m_frames++;
+
+		::fprintf(stdout, "M17 packet %s: %u, Viterbi BER %% (errs): %.3f%% (%u/%u)" EOL, eof ? "last frame, bytes" : "frame", counter, float(errs * 100U) / float(M17_PACKET_FEC_BITS), errs, M17_PACKET_FEC_BITS);
+	}
+}
+
+void CBERCal::M17End(const char* reason)
+{
+	if (m_bits > 0U)
+		::fprintf(stdout, "M17 transmission %s, total frames: %u, bits: %u, errors: %u, BER: %.4f%%" EOL, reason, m_frames, m_bits, m_errors, float(m_errors * 100U) / float(m_bits));
+
+	timerStop();
+	m_errors = 0U;
+	m_bits   = 0U;
+	m_frames = 0U;
+	m_m17Pending = false;
+}
+
+void CBERCal::M17Deinterleave(const unsigned char* in, unsigned char* out) const
+{
+	assert(in != nullptr);
+	assert(out != nullptr);
+
+	unsigned char temp[M17_FRAME_LENGTH_BYTES];
+	for (unsigned int i = M17_SYNC_LENGTH_BYTES; i < M17_FRAME_LENGTH_BYTES; i++)
+		temp[i] = in[i] ^ M17_SCRAMBLER[i];
+
+	::memcpy(out, in, M17_SYNC_LENGTH_BYTES);
+
+	for (unsigned int i = 0U; i < (M17_FRAME_LENGTH_BITS - M17_SYNC_LENGTH_BITS); i++) {
+		bool b = READ_BIT(temp, i + M17_SYNC_LENGTH_BITS) != 0U;
+		unsigned int n = M17_INTERLEAVER[i] + M17_SYNC_LENGTH_BITS;
+		WRITE_BIT(out, n, b);
+	}
+}
+
+bool CBERCal::M17CheckCRC(const unsigned char* data, unsigned int length) const
+{
+	assert(data != nullptr);
+	assert(length > 2U);
+
+	// CRC-16, polynomial 0x5935, initial value 0xFFFF
+	uint16_t crc = 0xFFFFU;
+	for (unsigned int i = 0U; i < (length - 2U); i++) {
+		crc ^= uint16_t(data[i]) << 8;
+		for (unsigned int j = 0U; j < 8U; j++)
+			crc = (crc & 0x8000U) ? uint16_t((crc << 1) ^ 0x5935U) : uint16_t(crc << 1);
+	}
+
+	return crc == ((uint16_t(data[length - 2U]) << 8) | data[length - 1U]);
+}
+
+void CBERCal::M17Callsign(const unsigned char* encoded, char* callsign) const
+{
+	assert(encoded != nullptr);
+	assert(callsign != nullptr);
+
+	uint64_t enc = 0U;
+	for (unsigned int i = 0U; i < 6U; i++)
+		enc = (enc << 8) | encoded[i];
+
+	if (enc == 0xFFFFFFFFFFFFULL) {
+		::strcpy(callsign, "ALL");
+		return;
+	}
+
+	unsigned int n = 0U;
+	if (enc >= 268697600000000ULL) {
+		::strcpy(callsign, "Invalid");
+		return;
+	} else if (enc >= 262144000000000ULL) {
+		callsign[n++] = '#';
+		enc -= 262144000000000ULL;
+	}
+
+	while (enc > 0U && n < 9U) {
+		callsign[n++] = " ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-/."[enc % 40U];
+		enc /= 40U;
+	}
+
+	callsign[n] = '\0';
 }
 
 void CBERCal::clock()

@@ -47,6 +47,7 @@ enum MMDVM_STATE {
   STATE_P25       = 4,
   STATE_NXDN      = 5,
   STATE_POCSAG    = 6,
+  STATE_M17       = 7,
   STATE_FM        = 10,
   STATE_NXDNCAL1K = 91,
   STATE_DMRDMO1K  = 92,
@@ -142,6 +143,7 @@ private:
 	bool setYSFBER_FEC();
 	bool setP25BER_FEC();
 	bool setNXDNBER_FEC();
+	bool setM17BER_FEC();
 	bool setDSTAR();
 	bool setRSSI();
 	bool setIntCal();

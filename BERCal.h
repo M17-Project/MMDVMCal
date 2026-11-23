@@ -20,6 +20,8 @@
 #if !defined(BERCAL_H)
 #define BERCAL_H
 
+#include <cstdint>
+
 class CBERCal {
 public:
 	CBERCal();
@@ -31,6 +33,7 @@ public:
 	void YSFFEC(const unsigned char* buffer);
 	void P25FEC(const unsigned char* buffer);
 	void NXDNFEC(const unsigned char* buffer, const unsigned char m_tag);
+	void M17FEC(const unsigned char* buffer, const unsigned char m_tag);
 
 	void clock();
 
@@ -38,6 +41,11 @@ private:
 	unsigned int m_errors;
 	unsigned int m_bits;
 	unsigned int m_frames;
+
+	// A stream frame seen outside a transmission, kept until the next one confirms it
+	bool         m_m17Pending;
+	unsigned int m_m17PendingFN;
+	unsigned int m_m17PendingErrs;
 
 	unsigned int m_timeout;
 	unsigned int m_timer;
@@ -49,6 +57,11 @@ private:
 	unsigned int regenerateYSFDN(unsigned char* bytes);
 
 	unsigned char countErrs(unsigned char a, unsigned char b);
+
+	void M17Deinterleave(const unsigned char* in, unsigned char* out) const;
+	bool M17CheckCRC(const unsigned char* data, unsigned int length) const;
+	void M17Callsign(const unsigned char* encoded, char* callsign) const;
+	void M17End(const char* reason);
 
 	void timerStart();
 	void timerStop();
