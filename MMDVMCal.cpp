@@ -299,6 +299,9 @@ void CMMDVMCal::loop_MMDVM()
 			case 'n':
 				setNXDNBER_FEC();
 				break;
+			case 'x':
+				setM17BER_FEC();
+				break;
 			case 'a':
 				setP25Cal1K();
 				break;
@@ -372,6 +375,7 @@ void CMMDVMCal::displayHelp_MMDVM()
 	::fprintf(stdout, "    J        BER Test Mode (FEC) for YSF" EOL);
 	::fprintf(stdout, "    j        BER Test Mode (FEC) for P25" EOL);
 	::fprintf(stdout, "    n        BER Test Mode (FEC) for NXDN" EOL);
+	::fprintf(stdout, "    x        BER Test Mode (FEC) for M17" EOL);
 	::fprintf(stdout, "    g        POCSAG 600Hz Test Pattern" EOL);
 	::fprintf(stdout, "    e        M17 Preamble Test Pattern" EOL);
 	::fprintf(stdout, "    S/s      RSSI Mode" EOL);
@@ -477,6 +481,9 @@ void CMMDVMCal::loop_MMDVM_HS()
 			case 'n':
 				setNXDNBER_FEC();
 				break;
+			case 'x':
+				setM17BER_FEC();
+				break;
 			case 'g':
 				setPOCSAGCal();
 				break;
@@ -537,6 +544,7 @@ void CMMDVMCal::displayHelp_MMDVM_HS()
 	::fprintf(stdout, "    J        BER Test Mode (FEC) for YSF" EOL);
 	::fprintf(stdout, "    j        BER Test Mode (FEC) for P25" EOL);
 	::fprintf(stdout, "    n        BER Test Mode (FEC) for NXDN" EOL);
+	::fprintf(stdout, "    x        BER Test Mode (FEC) for M17" EOL);
 	::fprintf(stdout, "    g        POCSAG 600Hz Test Pattern" EOL);
 	::fprintf(stdout, "    S/s      RSSI Mode" EOL);
 	::fprintf(stdout, "    I/i      Interrupt Counter Mode" EOL);
@@ -692,6 +700,8 @@ bool CMMDVMCal::writeConfig1(float txlevel, bool debug)
 		buffer[4U] |= 0x20U;
 	if (m_fmEnabled)
 		buffer[4U] |= 0x40U;
+	if (m_mode == STATE_M17)
+		buffer[4U] |= 0x40U;
 
 	buffer[5U] = 0U;
 	buffer[6U] = m_mode;
@@ -775,6 +785,8 @@ bool CMMDVMCal::writeConfig2(float txlevel, bool debug)
 		buffer[4U] |= 0x10U;
 	if (m_fmEnabled)
 		buffer[4U] |= 0x20U;
+	if (m_mode == STATE_M17)
+		buffer[4U] |= 0x40U;
 
 	buffer[5U] = 0x00U;
 	if (m_pocsagEnabled)
@@ -1325,6 +1337,31 @@ bool CMMDVMCal::setNXDNBER_FEC()
 	}
 }
 
+bool CMMDVMCal::setM17BER_FEC()
+{
+	m_mode = STATE_M17;
+	m_carrier = false;
+	m_duplex = false;
+	m_dstarEnabled = false;
+	m_dmrEnabled = false;
+	m_ysfEnabled = false;
+	m_p25Enabled = false;
+	m_nxdnEnabled = false;
+	m_pocsagEnabled = false;
+	m_fmEnabled = false;
+
+	::fprintf(stdout, "BER Test Mode (FEC) for M17" EOL);
+
+	switch (m_version) {
+	case 1U:
+		return writeConfig1(m_txLevel, m_debug);
+	case 2U:
+		return writeConfig2(m_txLevel, m_debug);
+	default:
+		return false;
+	}
+}
+
 bool CMMDVMCal::setDSTAR()
 {
 	m_mode = STATE_DSTARCAL;
@@ -1802,6 +1839,9 @@ void CMMDVMCal::displayModem(const unsigned char *buffer, unsigned int length)
 		m_ber.P25FEC(buffer + 4U);
 	} else if (buffer[2U] == MMDVM_NXDN_DATA) {
 		m_ber.NXDNFEC(buffer + 4U, buffer[3U]);
+	} else if (buffer[2U] == MMDVM_M17_LINK_SETUP || buffer[2U] == MMDVM_M17_STREAM || buffer[2U] == MMDVM_M17_PACKET || buffer[2U] == MMDVM_M17_LOST || buffer[2U] == MMDVM_M17_EOT) {
+		// The modem sends a flag byte, then the frame with its sync
+		m_ber.M17FEC(buffer + 4U, buffer[2U]);
 	} else if (m_hwType == HWT_MMDVM && m_mode != STATE_DMR && m_mode != STATE_P25 && m_mode != STATE_NXDN) {
 		CUtils::dump("Response", buffer, length);
 	}
